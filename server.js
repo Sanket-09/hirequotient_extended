@@ -15,11 +15,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 const F1 = async(message) => {
-    return new Promise((resolve) => setTimeout(() => resolve(`LLM1 response to: ${message}`), 10001));
+    return new Promise((resolve) => setTimeout(() => resolve(`LLM1 response to: ${message}`), 11000));
 };
 
 const F2 = async(message) => {
-    return new Promise((resolve) => setTimeout(() => resolve(`LLM2 response to: ${message}`), 12000));
+    return new Promise((resolve) => setTimeout(() => resolve(`LLM2 response to: ${message}`), 11111));
 };
 
 const dummyResponse = "This is a pre-generated dummy message.";
@@ -53,7 +53,11 @@ io.on('connection', (socket) => {
         }
 
 
-        socket.emit('receiveMessage', response);
+        if (socket.connected) {
+            socket.emit('receiveMessage', response);
+        } else {
+            console.log('Socket disconnected before response could be sent');
+        }
     });
 
     socket.on('disconnect', () => {
