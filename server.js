@@ -10,14 +10,16 @@ const io = new Server(server);
 const PORT = 3000;
 const TIMEOUT = 10000;
 
+
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 const F1 = async(message) => {
-    return new Promise((resolve) => setTimeout(() => resolve(`LLM1 response to: ${message}`), 10000));
+    return new Promise((resolve) => setTimeout(() => resolve(`LLM1 response to: ${message}`), 10001));
 };
 
 const F2 = async(message) => {
-    return new Promise((resolve) => setTimeout(() => resolve(`LLM2 response to: ${message}`), 10001));
+    return new Promise((resolve) => setTimeout(() => resolve(`LLM2 response to: ${message}`), 12000));
 };
 
 const dummyResponse = "This is a pre-generated dummy message.";
@@ -28,39 +30,30 @@ io.on('connection', (socket) => {
     socket.on('sendMessage', async(message) => {
         console.log(`Received message: ${message}`);
 
+
         const f1Promise = F1(message);
         const f2Promise = F2(message);
 
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT));
+
+        const timeoutPromise = new Promise((resolve) => setTimeout(resolve, TIMEOUT));
+
+
+        await timeoutPromise;
 
         let response;
-        try {
-            const f1Response = await Promise.race([f1Promise, timeoutPromise]);
+        const f1Response = await Promise.race([f1Promise, timeoutPromise.catch(() => null)]);
+        const f2Response = await Promise.race([f2Promise, timeoutPromise.catch(() => null)]);
+
+        if (f1Response) {
             response = f1Response;
-        } catch (error) {
-            if (error.message === 'Timeout') {
-                try {
-                    const f2Response = await Promise.race([f2Promise, timeoutPromise]);
-                    response = f2Response;
-                } catch (error) {
-                    if (error.message === 'Timeout') {
-                        response = dummyResponse;
-                    } else {
-                        console.error('Error in F2:', error);
-                        response = dummyResponse;
-                    }
-                }
-            } else {
-                console.error('Error in F1:', error);
-                response = dummyResponse;
-            }
+        } else if (f2Response) {
+            response = f2Response;
+        } else {
+            response = dummyResponse;
         }
 
-        if (socket.connected) {
-            socket.emit('receiveMessage', response);
-        } else {
-            console.log('User disconnected before response could be sent');
-        }
+
+        socket.emit('receiveMessage', response);
     });
 
     socket.on('disconnect', () => {
