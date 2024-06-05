@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const socket = io();
+
+            const sendMessageButton = document.getElementById("sendMessageButton");
+            const messageInput = document.getElementById("messageInput");
+            const messages = document.getElementById("messages");
+            const timerDisplay = document.getElementById("timer");
+
+            let timerInterval;
+
+            sendMessageButton.addEventListener("click", () => {
+                const message = messageInput.value;
+                socket.emit("sendMessage", message);
+                messageInput.value = "";
+
+                // Start the timer
+                let timeLeft = 10;
+                timerDisplay.textContent = `Time until response: ${timeLeft}s`;
+                timerInterval = setInterval(() => {
+                    timeLeft -= 1;
+                    timerDisplay.textContent = `Time until response: ${timeLeft}s`;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                    }
+                }, 1000);
+            });
+
+            socket.on("receiveMessage", (message) => {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = "Response received!";
+                const messageElement = document.createElement("li");
+                messageElement.textContent = message;
+                messages.appendChild(messageElement);
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h1>Chat Application</h1>
+    <input type="text" id="messageInput" placeholder="Type your message here">
+    <button id="sendMessageButton">Send Message</button>
+    <p id="timer">Time until response: 10s</p>
+    <ul id="messages"></ul>
+</body>
+
+</html>
